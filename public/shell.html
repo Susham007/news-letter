@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chronicle — nter.pro</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#fff}
+#newsletter{width:100%;height:100%;border:0;display:block;background:#fff}
+#boot{position:fixed;inset:0;display:grid;place-items:center;background:#fff;font:500 12px ui-monospace,monospace;letter-spacing:.08em;color:#666;z-index:5}
+</style>
+</head>
+<body>
+<div id="boot">LOADING CHRONICLE</div>
+<iframe id="newsletter" src="/index.html" title="NTER Chronicle"></iframe>
+<script>
+const FRAME = document.getElementById('newsletter');
+const FORM_ENDPOINT='https://docs.google.com/forms/d/e/1FAIpQLSfRmwQMNjvPCn89fFujWLcg4qNWo_qx7IQFXVfBBq0z41YSOw/formResponse';
+const FIELDS={name:'entry.2093849879',email:'entry.1447777989',contact:'entry.1498876745',role:'entry.1742279738',coupon:'entry.256720589'};
+const IMAGES={
+  banner:'/img/nter-banner.b64',
+  lead:'/img/do-parliamentarians-really-care.b64',
+  bills:'/img/seven-bills-on-the-floor.b64',
+  cyber:'/img/cyber-crime-india.b64',
+  aravalli:'/img/aravalli-hearing.b64',
+  gems:'/img/gems-of-india.b64'
+};
+async function dataUri(path){
+  const t=await fetch(path,{cache:'force-cache'}).then(r=>r.text());
+  return 'data:image/webp;base64,'+t.trim();
+}
+function makeCode(email){
+  let h=0; for(let i=0;i<email.length;i++) h=(h*31+email.charCodeAt(i))>>>0;
+  return 'NTER-30-'+h.toString(36).toUpperCase().padStart(6,'0').slice(-6);
+}
+function storyPhoto(doc, section, src, alt, caption){
+  if(!section || section.querySelector('.editorial-photo')) return;
+  const utility=section.querySelector('.utility-row');
+  if(!utility) return;
+  const fig=doc.createElement('figure'); fig.className='editorial-photo';
+  const img=doc.createElement('img'); img.src=src; img.alt=alt; img.loading='lazy'; img.decoding='async';
+  const cap=doc.createElement('figcaption'); cap.textContent=caption;
+  fig.append(img,cap); utility.insertAdjacentElement('afterend',fig);
+}
+function buildSectionArchitecture(doc){
+  const front=doc.querySelector('.frontpage'); if(!front || front.querySelector('.daily-edition-shell')) return;
+  const why=front.querySelector('.why-panel');
+  const daily=doc.createElement('section'); daily.className='daily-edition-shell';
+  daily.innerHTML='<header class="editorial-section-head"><div><span class="section-no">01</span><span class="section-kicker">Daily edition</span><h2>Articles</h2></div><p>Reporting, data and analysis for today. This section changes with every Chronicle edition.</p></header>';
+  const head=daily.firstElementChild;
+  front.insertBefore(daily,front.firstChild);
+  let node=head.nextSibling;
+  const nodes=[];
+  for(const child of [...front.children]){
+    if(child===daily || child===why) continue;
+    if(why && child.compareDocumentPosition(why)&Node.DOCUMENT_POSITION_FOLLOWING) nodes.push(child);
+  }
+  nodes.forEach(n=>daily.appendChild(n));
+  if(why){
+    const product=doc.createElement('section'); product.className='product-note-shell';
+    product.innerHTML='<header class="editorial-section-head compact"><div><span class="section-no">02</span><span class="section-kicker">Product note</span><h2>Behind Chronicle</h2></div><p>The terminal, methodology and early-access path behind the publication.</p></header>';
+    front.insertBefore(product,why); product.appendChild(why);
+  }
+}
+async function enhance(){
+  const doc=FRAME.contentDocument; if(!doc) return;
+  const link=doc.createElement('link'); link.rel='stylesheet'; link.href='/ui-v3.css?v=3'; doc.head.appendChild(link);
+  buildSectionArchitecture(doc);
+  // Keep footer/sign-off branding clean.
+  doc.querySelectorAll('.sign-off,.n-footer').forEach(el=>{el.innerHTML=el.classList.contains('n-footer')?'<span>nter.pro</span><span>Chronicle · Public Intelligence Edition</span>':'<span class="so-brand">nter.pro</span>';});
+
+  // Dedicated advertisement inventory above the publication.
+  let ad=doc.querySelector('.ad-inventory');
+  if(!ad){
+    ad=doc.createElement('section'); ad.className='ad-inventory';
+    ad.innerHTML='<div class="ad-label"><span>Advertisement</span><span>Campaign inventory · NTER</span></div><div class="ad-frame"><img alt="NTER — India’s Intelligent Terminal"></div>';
+    const landing=doc.getElementById('landing'); (landing||doc.body.firstChild).before(ad);
+  }
+  ad.querySelector('img').src=await dataUri(IMAGES.banner);
+
+  // Lead photography + article photography.
+  const leadSrc=await dataUri(IMAGES.lead);
+  const hero=doc.querySelector('.hero-card');
+  if(hero && !hero.querySelector('.hero-photo')){
+    const media=doc.createElement('div'); media.className='hero-photo'; media.innerHTML='<img alt="Parliamentarians outside Parliament">'; media.querySelector('img').src=leadSrc; hero.prepend(media);
+  }
+  storyPhoto(doc,doc.getElementById('art-2'),leadSrc,'Parliamentarians outside Parliament','Parliament and political accountability — the lead analysis.');
+  storyPhoto(doc,doc.getElementById('brd-bills'),await dataUri(IMAGES.bills),'A legislative bill document','The legislative docket.');
+  storyPhoto(doc,doc.getElementById('brd-cyber'),await dataUri(IMAGES.cyber),'Cybercrime illustration','Cybercrime and digital fraud in India.');
+  storyPhoto(doc,doc.getElementById('brd-aravalli'),await dataUri(IMAGES.aravalli),'People demonstrating for the Aravalli hills','Public mobilisation around the Aravalli hearing.');
+  storyPhoto(doc,doc.getElementById('brd-gems'),await dataUri(IMAGES.gems),'A local video production crew','Grassroots creators producing a local story.');
+
+  // Add contact field to the existing branded waitlist if needed.
+  const form=doc.getElementById('wl-form');
+  if(form && !doc.getElementById('wl-contact')){
+    const roleField=doc.getElementById('wl-role')?.closest('.wl-field');
+    const field=doc.createElement('div'); field.className='wl-field';
+    field.innerHTML='<label for="wl-contact">Contact number</label><input type="tel" id="wl-contact" name="contact" placeholder="+91 98765 43210" autocomplete="tel" required>';
+    if(roleField) roleField.before(field); else form.prepend(field);
+  }
+  if(form && !form.dataset.googleRecorder){
+    form.dataset.googleRecorder='1';
+    form.addEventListener('submit',function(){
+      const email=(doc.getElementById('wl-email')?.value||'').trim();
+      if(!email) return;
+      const name=(doc.getElementById('wl-name')?.value||'').trim();
+      const contact=(doc.getElementById('wl-contact')?.value||'').trim();
+      const role=(doc.getElementById('wl-role')?.value||'').trim();
+      const coupon=makeCode(email.toLowerCase());
+      const hidden=doc.createElement('iframe'); hidden.name='google-recorder'; hidden.style.display='none'; doc.body.appendChild(hidden);
+      const gf=doc.createElement('form'); gf.method='POST'; gf.action=FORM_ENDPOINT; gf.target='google-recorder'; gf.style.display='none';
+      const vals={[FIELDS.name]:name,[FIELDS.email]:email,[FIELDS.contact]:contact,[FIELDS.role]:role,[FIELDS.coupon]:coupon};
+      Object.entries(vals).forEach(([k,v])=>{const i=doc.createElement('input');i.type='hidden';i.name=k;i.value=v;gf.appendChild(i)});
+      doc.body.appendChild(gf); gf.submit(); setTimeout(()=>{gf.remove();hidden.remove()},3000);
+    },true);
+  }
+  document.getElementById('boot').remove();
+}
+FRAME.addEventListener('load',()=>enhance().catch(err=>{console.error(err);document.getElementById('boot')?.remove();}));
+</script>
+</body>
+</html>
