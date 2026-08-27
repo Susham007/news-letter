@@ -1,0 +1,2 @@
+Trigger Cloudflare production build after Git integration.
+Commit generated 2026-08-27.
